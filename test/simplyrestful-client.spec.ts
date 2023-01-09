@@ -23,11 +23,9 @@ test('discoverApi correctly discovers the resource URI for this resource', async
     fetchMock.mockResponses(
         [
             JSON.stringify({
-                _links: {
-                    describedBy: {
-                        href: openApiUri
-                    }
-                }
+                describedBy: {
+					href: openApiUri
+				}
             }),
             { status: 200 }
         ],
@@ -64,11 +62,9 @@ test('discoverApi correctly discovers the resource URI for this resource when th
     fetchMock.mockResponses(
         [
             JSON.stringify({
-                _links: {
-                    describedBy: {
-                        href: openApiUri
-                    }
-                }
+				describedBy: {
+					href: openApiUri
+				}
             }),
             { status: 200 }
         ],
@@ -105,11 +101,9 @@ test('discoverApi correctly discovers the resource URI for this resource when th
     fetchMock.mockResponses(
         [
             JSON.stringify({
-                _links: {
-                    describedBy: {
-                        href: openApiUri
-                    }
-                }
+				describedBy: {
+					href: openApiUri
+				}
             }),
             { status: 200 }
         ],
@@ -146,11 +140,9 @@ test('discoverApi correctly discovers the resource URI for this resource when th
     fetchMock.mockResponses(
         [
             JSON.stringify({
-                _links: {
-                    describedBy: {
-                        href: openApiUri
-                    }
-                }
+				describedBy: {
+					href: openApiUri
+				}
             }),
             { status: 200 }
         ],
@@ -187,11 +179,9 @@ test('discoverApi correctly discovers the resource URI for this resource when th
     fetchMock.mockResponses(
         [
             JSON.stringify({
-                _links: {
-                    describedBy: {
-                        href: openApiUri
-                    }
-                }
+				describedBy: {
+					href: openApiUri
+				}
             }),
             { status: 200 }
         ],
@@ -228,11 +218,9 @@ test('discoverApi does not discover the resource URI for this resource when the 
     fetchMock.mockResponses(
         [
             JSON.stringify({
-                _links: {
-                    describedBy: {
-                        href: openApiUri
-                    }
-                }
+				describedBy: {
+					href: openApiUri
+				}
             }),
             { status: 200 }
         ],
@@ -287,11 +275,9 @@ test('discoverApi throws an error when the OpenAPI Specification URI can not be 
     fetchMock.mockResponses(
         [
             JSON.stringify({
-                _links: {
-                    describedBy: {
-                        href: openApiUri
-                    }
-                }
+				describedBy: {
+					href: openApiUri
+				}
             }),
             { status: 200 }
         ],
@@ -344,9 +330,7 @@ test('list correctly retrieves the list of resources when the collection is empt
     fetchMock.mockResponse(JSON.stringify(
         {
             total: total,
-            _embedded: {
-                item: []
-            }
+            item: []
         }));
     const retrievedListOfResources: TestResource[] = await testResourceClient.list();
 
@@ -365,15 +349,22 @@ test('list correctly sets the paging query parameters', async () => {
     const additional = new URLSearchParams({ "param1": "value1", "param2": "value2" });
 
     fetchMock.mockResponse(JSON.stringify({}));
-    const retrievedListOfResources: TestResource[] = await testResourceClient.list({pageStart: pageStart, pageSize: pageSize, fields: fields, query: query, sort: sort, additionalQueryParameters: additional});
+    await testResourceClient.list({pageStart: pageStart, pageSize: pageSize, fields: fields, query: query, sort: sort, additionalQueryParameters: additional});
 
     const actualUri = fetchMock.mock.calls[0][0] as string;
     expect(actualUri).toContain(resourceListUri);
     const actualSearchParams: URLSearchParams = new URL(actualUri).searchParams;
-    expect(actualSearchParams.has("pageStart")).toBeTruthy();
-    expect(parseInt(actualSearchParams.get("pageStart")!)).toEqual(pageStart);
-    expect(actualSearchParams.has("pageSize")).toBeTruthy();
-    expect(parseInt(actualSearchParams.get("pageSize")!)).toEqual(pageSize);
+	expect(actualSearchParams.has("pageStart")).toBeTruthy();
+	const actualPageStart = actualSearchParams.get("pageStart");
+    expect(actualPageStart).not.toBeNull();
+	if(actualPageStart != null){
+		expect(parseInt(actualPageStart)).toEqual(pageStart);
+	}
+	expect(actualSearchParams.has("pageSize")).toBeTruthy();
+	const actualPageSize = actualSearchParams.get("pageSize");
+	if(actualPageSize != null){
+		expect(parseInt(actualPageSize)).toEqual(pageSize);
+	}
     expect(actualSearchParams.has("fields")).toBeTruthy();
     expect(actualSearchParams.get("fields")).toBe(fields.join(","));
     expect(actualSearchParams.has("query")).toBeTruthy();
@@ -407,9 +398,16 @@ test('list correctly sets the paging query parameters when a relative base API U
 	expect(actualUrl.pathname).toBe(resourceListUri);
     const actualSearchParams: URLSearchParams = actualUrl.searchParams;
     expect(actualSearchParams.has("pageStart")).toBeTruthy();
-    expect(parseInt(actualSearchParams.get("pageStart")!)).toEqual(pageStart);
-    expect(actualSearchParams.has("pageSize")).toBeTruthy();
-    expect(parseInt(actualSearchParams.get("pageSize")!)).toEqual(pageSize);
+	const actualPageStart = actualSearchParams.get("pageStart");
+    expect(actualPageStart).not.toBeNull();
+	if(actualPageStart != null){
+		expect(parseInt(actualPageStart)).toEqual(pageStart);
+	}
+	expect(actualSearchParams.has("pageSize")).toBeTruthy();
+	const actualPageSize = actualSearchParams.get("pageSize");
+	if(actualPageSize != null){
+		expect(parseInt(actualPageSize)).toEqual(pageSize);
+	}
     expect(actualSearchParams.has("fields")).toBeTruthy();
     expect(actualSearchParams.get("fields")).toBe(fields.join(","));
     expect(actualSearchParams.has("query")).toBeTruthy();
@@ -426,7 +424,7 @@ test('list correctly sets the HTTP headers', async () => {
     const headers = new Headers({ "header1": "value1", "header2": "value2" });
     const expectedHeaders = new Headers({ "header1": "value1", "header2": "value2", "Accept": "application/x.simplyrestful-collection-v1+json" });
     fetchMock.mockResponse(JSON.stringify({}));
-    const retrievedListOfResources: TestResource[] = await testResourceClient.list({httpHeaders: headers});
+    await testResourceClient.list({httpHeaders: headers});
     expect(fetchMock.mock.calls[0][1]).toHaveProperty("headers", expectedHeaders);
 });
 

@@ -12,7 +12,7 @@ beforeAll(() => {
 
 beforeEach(() => {
 	fetchMock.resetMocks();
-	exampleResourceClient = new SimplyRESTfulClient(hostname, "https://arucard21.github.io/SimplyRESTful-Framework/ExampleResource/v1");
+	exampleResourceClient = new SimplyRESTfulClient(hostname, "application/x.testresource-v1+json");
 });
 
 test('Running API against which to run integration tests is available', async () => {
@@ -74,23 +74,32 @@ test('create correctly creates the resource', async () => {
 test('read retrieves the resource when the URL is provided', async () => {
     const listOfResources: ExampleResource[] = await exampleResourceClient.list();
     expect(listOfResources.length).toBeGreaterThan(0);
-    const resourceIdentifierFirstResource = listOfResources[0]._links.self.href;
-    const retrieved: ExampleResource = await exampleResourceClient.read(resourceIdentifierFirstResource);
+    const resourceIdentifierFirstResource = listOfResources[0].self?.href;
+	expect(resourceIdentifierFirstResource).toBeTruthy();
+	if(resourceIdentifierFirstResource != null){
+		const retrieved: ExampleResource = await exampleResourceClient.read(resourceIdentifierFirstResource);
 
-    expect(retrieved.description).toBe("This is test resource 0");
-    expect(retrieved.complexAttribute.name).toBe("complex attribute of test resource 0");
+		expect(retrieved.description).toBe("This is test resource 0");
+		expect(retrieved.complexAttribute.name).toBe("complex attribute of test resource 0");
+	}
 });
 
 test('read correctly retrieves the resource when only the UUID is provided', async () => {
     const listOfResources: ExampleResource[] = await exampleResourceClient.list();
     expect(listOfResources.length).toBeGreaterThan(0);
-    const resourceIdentifierFirstResource = new URL(listOfResources[0]._links.self.href);
-    const resourceUuidFirstResource = resourceIdentifierFirstResource.pathname.split("/").pop();
+    const resourceIdentifierFirstResource = listOfResources[0].self?.href;
+	expect(resourceIdentifierFirstResource).toBeTruthy();
+	if(resourceIdentifierFirstResource != null){
+		const resourceUuidFirstResource = new URL(resourceIdentifierFirstResource).pathname.split("/").pop();
 
-    const retrieved: ExampleResource = await exampleResourceClient.readWithUuid(resourceUuidFirstResource);
+		expect(resourceUuidFirstResource).toBeTruthy();
+		if(resourceUuidFirstResource != null){
+			const retrieved: ExampleResource = await exampleResourceClient.readWithUuid(resourceUuidFirstResource);
 
-    expect(retrieved.description).toBe("This is test resource 0");
-    expect(retrieved.complexAttribute.name).toBe("complex attribute of test resource 0");
+			expect(retrieved.description).toBe("This is test resource 0");
+			expect(retrieved.complexAttribute.name).toBe("complex attribute of test resource 0");
+		}
+	}
 });
 
 test('update correctly updates the resource', async () => {

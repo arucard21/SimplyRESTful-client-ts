@@ -11,7 +11,7 @@ export class SimplyRESTfulClient<T extends APIResource> {
     readonly baseApiUri: string;
     readonly resourceMediaType: string;
     resourceUriTemplate: string | undefined;
-    totalAmountOfLastRetrievedCollection: number = -1;
+    totalAmountOfLastRetrievedCollection = -1;
 
     constructor(baseApiUri: string, resourceMediaType: string) {
         this.baseApiUri = baseApiUri;
@@ -31,7 +31,7 @@ export class SimplyRESTfulClient<T extends APIResource> {
     }
 
     async discoverApi(httpHeaders?: Headers): Promise<void> {
-        if (!!this.resourceUriTemplate) {
+        if (this.resourceUriTemplate) {
             return;
         }
         return this.retrieveServiceDocument(httpHeaders)
@@ -49,7 +49,7 @@ export class SimplyRESTfulClient<T extends APIResource> {
 				});
             }
             return response.json().then(serviceDocument => {
-                return serviceDocument["_links"]["describedBy"]["href"];
+                return serviceDocument["describedBy"]["href"];
             })
         });
     }
@@ -94,27 +94,27 @@ export class SimplyRESTfulClient<T extends APIResource> {
         return this.discoverApi(httpHeaders).then(() => {
             const resourceListUri = this.createUrlFromRelativeOrAbsoluteUrlString(this.resolveResourceUriTemplate());
 
-            let searchParams = new URLSearchParams();
-            if (!!pageStart) {
+            const searchParams = new URLSearchParams();
+            if (pageStart) {
                 searchParams.append("pageStart", pageStart.toString());
             }
-            if (!!pageSize) {
+            if (pageSize) {
                 searchParams.append("pageSize", pageSize.toString());
             }
-            if (!!fields) {
+            if (fields) {
                 searchParams.append("fields", fields.join(","));
             }
-            if (!!query) {
+            if (query) {
                 searchParams.append("query", query);
             }
-            if (!!sort) {
-                let sortParameters: string[] = [];
+            if (sort) {
+                const sortParameters: string[] = [];
                 sort.forEach(field => {
                     sortParameters.push(`${field.fieldName}:${field.ascending ? "asc" : "desc"}`);
                 });
                 searchParams.append("sort", sortParameters.join(","));
             }
-            if (!!additionalQueryParameters) {
+            if (additionalQueryParameters) {
                 additionalQueryParameters.forEach((paramValue, paramName) => {
                     searchParams.append(paramName, paramValue);
                 });
@@ -148,7 +148,7 @@ export class SimplyRESTfulClient<T extends APIResource> {
     async create(resource: T, httpHeaders?: Headers, queryParameters?: URLSearchParams): Promise<string> {
         return this.discoverApi(httpHeaders).then(() => {
             const resourceListUri = this.createUrlFromRelativeOrAbsoluteUrlString(this.resolveResourceUriTemplate());
-            if (!!queryParameters) {
+            if (queryParameters) {
                 resourceListUri.search = queryParameters.toString();
             }
 
@@ -177,7 +177,7 @@ export class SimplyRESTfulClient<T extends APIResource> {
     async read(resourceIdentifier: string, httpHeaders?: Headers, queryParameters?: URLSearchParams): Promise<T> {
         return this.discoverApi(httpHeaders).then(() => {
 			const resourceUri = this.createUrlFromRelativeOrAbsoluteUrlString(resourceIdentifier);
-            if (!!queryParameters) {
+            if (queryParameters) {
                 resourceUri.search = queryParameters.toString();
             }
 
@@ -205,8 +205,8 @@ export class SimplyRESTfulClient<T extends APIResource> {
             if (!selfLink) {
                 throw new BadRequestError(undefined, new Error("The update failed because the resource does not contain a valid self link."));
             }
-            let resourceIdentifier: URL = this.createUrlFromRelativeOrAbsoluteUrlString(selfLink);
-            if (!!queryParameters) {
+            const resourceIdentifier: URL = this.createUrlFromRelativeOrAbsoluteUrlString(selfLink);
+            if (queryParameters) {
                 resourceIdentifier.search = queryParameters.toString();
             }
 
@@ -235,7 +235,7 @@ export class SimplyRESTfulClient<T extends APIResource> {
     async delete(resourceIdentifier: string, httpHeaders?: Headers, queryParameters?: URLSearchParams) : Promise<boolean> {
         return this.discoverApi(httpHeaders).then(() => {
 			const resourceUri = this.createUrlFromRelativeOrAbsoluteUrlString(resourceIdentifier);
-            if (!!queryParameters) {
+            if (queryParameters) {
                 resourceUri.search = queryParameters.toString();
             }
 

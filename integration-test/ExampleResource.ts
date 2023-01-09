@@ -1,6 +1,6 @@
-import { HALResource } from './../src/HALResource';
+import { APIResource } from './../src/APIResource';
 
-export type ExampleResource = HALResource & {
+export interface ExampleResource extends APIResource {
     description: string;
     complexAttribute: {
         name: string;
