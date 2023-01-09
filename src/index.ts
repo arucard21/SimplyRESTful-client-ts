@@ -1,3 +1,3 @@
 export { SimplyRESTfulClient } from './simplyrestful-client';
 export * from './Errors';
-export { HALResource } from './HALResource';
+export { APIResource as HALResource } from './APIResource';

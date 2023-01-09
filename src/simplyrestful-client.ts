@@ -1,23 +1,21 @@
 import { OpenAPIV3 } from 'openapi-types';
-import { HALResource } from './HALResource';
-import { HalCollectionV2 } from './HalCollectionV2';
+import { APIResource } from './APIResource';
+import { APICollection } from './APICollection';
 import { SortOrder } from './SortOrder';
 import { BadRequestError, NotFoundError, fromResponse } from './Errors';
 
-export class SimplyRESTfulClient<T extends HALResource> {
+export class SimplyRESTfulClient<T extends APIResource> {
 	readonly dummyHostname = "placeholderforrelativeurl";
 	readonly dummyHost = "http://" + this.dummyHostname;
 
     readonly baseApiUri: string;
-    readonly resourceProfile: string;
     readonly resourceMediaType: string;
     resourceUriTemplate: string | undefined;
     totalAmountOfLastRetrievedCollection: number = -1;
 
-    constructor(baseApiUri: string, resourceProfile: string) {
+    constructor(baseApiUri: string, resourceMediaType: string) {
         this.baseApiUri = baseApiUri;
-        this.resourceMediaType = "application/hal+json";
-        this.resourceProfile = resourceProfile;
+        this.resourceMediaType = resourceMediaType;
     }
 
     /*
@@ -74,15 +72,19 @@ export class SimplyRESTfulClient<T extends HALResource> {
 			if(!pathItem){
 				continue;
 			}
-			const content = (pathItem.get?.responses?.default as OpenAPIV3.ResponseObject)?.content;
-			const mediaType = `${this.resourceMediaType};profile="${this.resourceProfile}"`;
-			for (const contentType in content) {
-				const contentTypeNoSpaces = contentType.replace(" ", "");
-				if (contentTypeNoSpaces === mediaType) {
-					const resourceUri : URL = this.createUrlFromRelativeOrAbsoluteUrlString(this.baseApiUri);
-					resourceUri.pathname = this.joinPath(resourceUri.pathname, discoveredPath);
-					this.resourceUriTemplate = decodeURI(this.getRelativeOrAbsoluteUrl(resourceUri));
-					return;
+			const responses = (pathItem.get?.responses as OpenAPIV3.ResponsesObject);
+			for(const responseIndex in responses){
+				if(responseIndex == "default" || (parseInt(responseIndex) >= 200 && parseInt(responseIndex) < 300)){
+					const response = responses[responseIndex] as OpenAPIV3.ResponseObject
+					for (const contentType in response.content) {
+						const contentTypeNoSpaces = contentType.replace(" ", "");
+						if (contentTypeNoSpaces === this.resourceMediaType) {
+							const resourceUri : URL = this.createUrlFromRelativeOrAbsoluteUrlString(this.baseApiUri);
+							resourceUri.pathname = this.joinPath(resourceUri.pathname, discoveredPath);
+							this.resourceUriTemplate = decodeURI(this.getRelativeOrAbsoluteUrl(resourceUri));
+							return;
+						}
+					}
 				}
 			}
         }
@@ -122,7 +124,7 @@ export class SimplyRESTfulClient<T extends HALResource> {
             if (!httpHeaders) {
                 httpHeaders = new Headers();
             }
-            httpHeaders.append("Accept", "application/hal+json;profile=\"https://arucard21.github.io/SimplyRESTful-Framework/HALCollection/v2\"");
+            httpHeaders.append("Accept", "application/x.simplyrestful-collection-v1+json");
 
             return fetch(this.getRelativeOrAbsoluteUrl(resourceListUri), { headers: httpHeaders }).then(response => {
                 if (!response.ok) {
@@ -132,13 +134,13 @@ export class SimplyRESTfulClient<T extends HALResource> {
 							new Error(`Failed to list the resource at ${resourceListUri}.\nThe API returned status ${response.status} with message:\n${body}`));
 					});
                 }
-                return response.json() as Promise<HalCollectionV2<T>>;
-            }).then((collection: HalCollectionV2<T>) => {
+                return response.json() as Promise<APICollection<T>>;
+            }).then((collection: APICollection<T>) => {
                 this.totalAmountOfLastRetrievedCollection = typeof collection.total === 'number' ? collection.total : -1;
-                if (!collection._embedded || !collection._embedded.item) {
+                if (!collection.item) {
                     return [];
                 }
-                return collection._embedded.item;
+                return collection.item;
             })
         });
     }
@@ -153,7 +155,7 @@ export class SimplyRESTfulClient<T extends HALResource> {
             if (!httpHeaders) {
                 httpHeaders = new Headers();
             }
-            httpHeaders.append("Content-Type", `application/hal+json;profile="${this.resourceProfile}"`);
+            httpHeaders.append("Content-Type", this.resourceMediaType);
 
             return fetch(this.getRelativeOrAbsoluteUrl(resourceListUri), { method: "POST", headers: httpHeaders, body: JSON.stringify(resource) }).then(response => {
                 if (response.status !== 201) {
@@ -182,7 +184,7 @@ export class SimplyRESTfulClient<T extends HALResource> {
             if (!httpHeaders) {
                 httpHeaders = new Headers();
             }
-            httpHeaders.append("Accept", `application/hal+json;profile="${this.resourceProfile}"`);
+            httpHeaders.append("Accept", this.resourceMediaType);
 
             return fetch(this.getRelativeOrAbsoluteUrl(resourceUri), { headers: httpHeaders }).then(response => {
                 if (!response.ok) {
@@ -199,7 +201,7 @@ export class SimplyRESTfulClient<T extends HALResource> {
 
     async update(resource: T, httpHeaders?: Headers, queryParameters?: URLSearchParams): Promise<void> {
         return this.discoverApi(httpHeaders).then(() => {
-            const selfLink = resource?._links?.self?.href;
+            const selfLink = resource?.self?.href;
             if (!selfLink) {
                 throw new BadRequestError(undefined, new Error("The update failed because the resource does not contain a valid self link."));
             }
@@ -211,7 +213,7 @@ export class SimplyRESTfulClient<T extends HALResource> {
             if (!httpHeaders) {
                 httpHeaders = new Headers();
             }
-            httpHeaders.append("Content-Type", `application/hal+json;profile="${this.resourceProfile}"`);
+            httpHeaders.append("Content-Type", this.resourceMediaType);
 
 			const uri : string = this.getRelativeOrAbsoluteUrl(resourceIdentifier);
             return fetch(uri, { method: "PUT", headers: httpHeaders, body: JSON.stringify(resource) }).then(response => {

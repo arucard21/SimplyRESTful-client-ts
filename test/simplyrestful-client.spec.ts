@@ -5,12 +5,11 @@ import { InternalServerError, BadRequestError, NotFoundError, BadGatewayError, F
 
 let testResourceClient: SimplyRESTfulClient<TestResource>;
 const baseUri = "http://localhost/";
-const testResourceProfile = "https://arucard21.github.io/SimplyRESTful-Framework/TestResource/v1";
-const testResourceMediaType = `application/hal+json;profile="${testResourceProfile}"`;
+const testResourceMediaType = "application/x.testresource-v1+json";
 
 beforeAll(() => {
     fetchMock.enableMocks();
-    testResourceClient = new SimplyRESTfulClient(baseUri, testResourceProfile);
+    testResourceClient = new SimplyRESTfulClient(baseUri, testResourceMediaType);
     testResourceClient.setResourceUriTemplate("http://localhost/testresources/{id}");
 });
 
@@ -20,7 +19,7 @@ beforeEach(() => {
 
 test('discoverApi correctly discovers the resource URI for this resource', async () => {
     const openApiUri = "http://localhost/openapi.json";
-    const testResourceClientWithDiscovery = new SimplyRESTfulClient(baseUri, testResourceProfile);
+    const testResourceClientWithDiscovery = new SimplyRESTfulClient(baseUri, testResourceMediaType);
     fetchMock.mockResponses(
         [
             JSON.stringify({
@@ -40,7 +39,7 @@ test('discoverApi correctly discovers the resource URI for this resource', async
                             responses: {
                                 default: {
                                     content: {
-                                        "application/hal+json;profile=\"https://arucard21.github.io/SimplyRESTful-Framework/TestResource/v1\"": {
+                                        [testResourceMediaType]: {
                                             schema: {}
                                         }
                                     }
@@ -61,7 +60,7 @@ test('discoverApi correctly discovers the resource URI for this resource', async
 test('discoverApi correctly discovers the resource URI for this resource when the API base URI is relative', async () => {
 	const relativeBaseUri = "";
 	const openApiUri = "http://localhost/openapi.json";
-    const testResourceClientWithDiscovery = new SimplyRESTfulClient(relativeBaseUri, testResourceProfile);
+    const testResourceClientWithDiscovery = new SimplyRESTfulClient(relativeBaseUri, testResourceMediaType);
     fetchMock.mockResponses(
         [
             JSON.stringify({
@@ -81,11 +80,11 @@ test('discoverApi correctly discovers the resource URI for this resource when th
                             responses: {
                                 default: {
                                     content: {
-                                        "application/hal+json;profile=\"https://arucard21.github.io/SimplyRESTful-Framework/TestResource/v1\"": {
+                                        [testResourceMediaType]: {
                                             schema: {}
                                         }
                                     }
-                                }
+                                },
                             }
                         }
                     }
@@ -102,7 +101,7 @@ test('discoverApi correctly discovers the resource URI for this resource when th
 test('discoverApi correctly discovers the resource URI for this resource when the API root has a base path', async () => {
 	const baseUriWithBasePath = "http://localhost/some/base/path/";
     const openApiUri = "http://localhost/some/base/path/openapi.json";
-    const testResourceClientWithDiscovery = new SimplyRESTfulClient(baseUriWithBasePath, testResourceProfile);
+    const testResourceClientWithDiscovery = new SimplyRESTfulClient(baseUriWithBasePath, testResourceMediaType);
     fetchMock.mockResponses(
         [
             JSON.stringify({
@@ -122,7 +121,7 @@ test('discoverApi correctly discovers the resource URI for this resource when th
                             responses: {
                                 default: {
                                     content: {
-                                        "application/hal+json;profile=\"https://arucard21.github.io/SimplyRESTful-Framework/TestResource/v1\"": {
+										[testResourceMediaType]: {
                                             schema: {}
                                         }
                                     }
@@ -143,7 +142,7 @@ test('discoverApi correctly discovers the resource URI for this resource when th
 test('discoverApi correctly discovers the resource URI for this resource when the API root has a base path and the API base URI is relative', async () => {
 	const relativeBaseUriWithBasePath = "some/base/path/";
     const openApiUri = "http://localhost/some/base/path/openapi.json";
-    const testResourceClientWithDiscovery = new SimplyRESTfulClient(relativeBaseUriWithBasePath, testResourceProfile);
+    const testResourceClientWithDiscovery = new SimplyRESTfulClient(relativeBaseUriWithBasePath, testResourceMediaType);
     fetchMock.mockResponses(
         [
             JSON.stringify({
@@ -163,7 +162,7 @@ test('discoverApi correctly discovers the resource URI for this resource when th
                             responses: {
                                 default: {
                                     content: {
-                                        "application/hal+json;profile=\"https://arucard21.github.io/SimplyRESTful-Framework/TestResource/v1\"": {
+                                        [testResourceMediaType]: {
                                             schema: {}
                                         }
                                     }
@@ -181,10 +180,92 @@ test('discoverApi correctly discovers the resource URI for this resource when th
     expect(fetchMock.mock.calls[1][0]).toBe(openApiUri);
 });
 
+test('discoverApi correctly discovers the resource URI for this resource when the media type is for a 2xx response instead of default', async () => {
+	const relativeBaseUri = "";
+	const openApiUri = "http://localhost/openapi.json";
+    const testResourceClientWithDiscovery = new SimplyRESTfulClient(relativeBaseUri, testResourceMediaType);
+    fetchMock.mockResponses(
+        [
+            JSON.stringify({
+                _links: {
+                    describedBy: {
+                        href: openApiUri
+                    }
+                }
+            }),
+            { status: 200 }
+        ],
+        [
+            JSON.stringify({
+                paths: {
+                    "/discoveredtestresources/{id}": {
+                        get: {
+                            responses: {
+                                200: {
+                                    content: {
+                                        "application/x.testresource-v1+json": {
+                                            schema: {}
+                                        }
+                                    }
+                                },
+                            }
+                        }
+                    }
+                }
+            }),
+            { status: 200 }
+        ]);
+    await testResourceClientWithDiscovery.discoverApi();
+    expect(testResourceClientWithDiscovery.resourceUriTemplate).toBe("/discoveredtestresources/{id}");
+    expect(fetchMock.mock.calls[0][0]).toBe(relativeBaseUri);
+    expect(fetchMock.mock.calls[1][0]).toBe(openApiUri);
+});
+
+test('discoverApi does not discover the resource URI for this resource when the media type is only for a 4xx response', async () => {
+	const relativeBaseUri = "";
+	const openApiUri = "http://localhost/openapi.json";
+    const testResourceClientWithDiscovery = new SimplyRESTfulClient(relativeBaseUri, testResourceMediaType);
+    fetchMock.mockResponses(
+        [
+            JSON.stringify({
+                _links: {
+                    describedBy: {
+                        href: openApiUri
+                    }
+                }
+            }),
+            { status: 200 }
+        ],
+        [
+            JSON.stringify({
+                paths: {
+                    "/discoveredtestresources/{id}": {
+                        get: {
+                            responses: {
+                                400: {
+                                    content: {
+                                        "application/x.testresource-v1+json": {
+                                            schema: {}
+                                        }
+                                    }
+                                },
+                            }
+                        }
+                    }
+                }
+            }),
+            { status: 200 }
+        ]);
+    await testResourceClientWithDiscovery.discoverApi();
+    expect(testResourceClientWithDiscovery.resourceUriTemplate).toBeUndefined();
+    expect(fetchMock.mock.calls[0][0]).toBe(relativeBaseUri);
+    expect(fetchMock.mock.calls[1][0]).toBe(openApiUri);
+});
+
 test('discoverApi throws an error when the API can not be accessed', async () => {
 	const errorStatus = 500;
 	const errorMessage = 'Something went wrong';
-    const testResourceClientWithDiscovery = new SimplyRESTfulClient(baseUri, testResourceProfile);
+    const testResourceClientWithDiscovery = new SimplyRESTfulClient(baseUri, testResourceMediaType);
 	fetchMock.mockResponseOnce(errorMessage, { status: errorStatus });
 	expect.assertions(4);
 	try {
@@ -202,7 +283,7 @@ test('discoverApi throws an error when the OpenAPI Specification URI can not be 
 	const errorStatus = 502;
 	const errorMessage = 'Something went wrong';
     const openApiUri = "http://localhost/openapi.json";
-    const testResourceClientWithDiscovery = new SimplyRESTfulClient(baseUri, testResourceProfile);
+    const testResourceClientWithDiscovery = new SimplyRESTfulClient(baseUri, testResourceMediaType);
     fetchMock.mockResponses(
         [
             JSON.stringify({
@@ -238,16 +319,14 @@ test('list correctly retrieves the list of resources', async () => {
     const additionalFieldValue0 = "test value 0";
     const additionalFieldValue1 = "test value 1";
     const additionalFieldValue2 = "test value 2";
-    const item0 = { _links: { self: { href: selfLink0 } }, additionalField: additionalFieldValue0 };
-    const item1 = { _links: { self: { href: selfLink1 } }, additionalField: additionalFieldValue1 };
-    const item2 = { _links: { self: { href: selfLink2 } }, additionalField: additionalFieldValue2 };
+    const item0 = { self: { href: selfLink0 }, additionalField: additionalFieldValue0 };
+    const item1 = { self: { href: selfLink1 }, additionalField: additionalFieldValue1 };
+    const item2 = { self: { href: selfLink2 }, additionalField: additionalFieldValue2 };
 
     fetchMock.mockResponse(JSON.stringify(
         {
             total: total,
-            _embedded: {
-                item: [item0, item1, item2]
-            }
+            item: [item0, item1, item2]
         }));
     expect(testResourceClient.totalAmountOfLastRetrievedCollection).toBe(-1);
     const retrievedListOfResources: TestResource[] = await testResourceClient.list();
@@ -310,7 +389,7 @@ test('list correctly sets the paging query parameters', async () => {
 test('list correctly sets the paging query parameters when a relative base API URI is provided', async () => {
 	const resourceListUri = "/testrelativeresources/";
 	const relativeApiUri = "";
-	const clientWithRelativeUri = new SimplyRESTfulClient(relativeApiUri, testResourceProfile);
+	const clientWithRelativeUri = new SimplyRESTfulClient(relativeApiUri, testResourceMediaType);
 	clientWithRelativeUri.setResourceUriTemplate("/testrelativeresources/{id}");
 
     const pageStart = 10;
@@ -345,7 +424,7 @@ test('list correctly sets the paging query parameters when a relative base API U
 
 test('list correctly sets the HTTP headers', async () => {
     const headers = new Headers({ "header1": "value1", "header2": "value2" });
-    const expectedHeaders = new Headers({ "header1": "value1", "header2": "value2", "Accept": "application/hal+json;profile=\"https://arucard21.github.io/SimplyRESTful-Framework/HALCollection/v2\"" });
+    const expectedHeaders = new Headers({ "header1": "value1", "header2": "value2", "Accept": "application/x.simplyrestful-collection-v1+json" });
     fetchMock.mockResponse(JSON.stringify({}));
     const retrievedListOfResources: TestResource[] = await testResourceClient.list({httpHeaders: headers});
     expect(fetchMock.mock.calls[0][1]).toHaveProperty("headers", expectedHeaders);
@@ -400,19 +479,19 @@ test('create throws an error when the location is not returned', async () => {
 test('read correctly retrieves the resource when provided with a URL', async () => {
     const selfLink = "http://localhost/testresources/00000000-0000-0000-0000-000000000000";
     const additionalFieldValue = "test value";
-    fetchMock.mockResponse(JSON.stringify({ _links: { self: { href: selfLink } }, additionalField: additionalFieldValue}));
+    fetchMock.mockResponse(JSON.stringify({ self: { href: selfLink }, additionalField: additionalFieldValue}));
     const retrievedResource: TestResource = await testResourceClient.read("http://localhost/testresources/00000000-0000-0000-0000-000000000000");
 	expect(retrievedResource.additionalField).toBe(additionalFieldValue);
-    expect(retrievedResource._links?.self?.href).toBe(selfLink);
+    expect(retrievedResource.self?.href).toBe(selfLink);
 });
 
 test('readWithUuid correctly retrieves the resource when provided with a UUID', async () => {
     const selfLink = "http://localhost/testresources/00000000-0000-0000-0000-000000000000";
     const additionalFieldValue = "test value";
-    fetchMock.mockResponse(JSON.stringify({ _links: { self: { href: selfLink } }, additionalField: additionalFieldValue }));
+    fetchMock.mockResponse(JSON.stringify({ self: { href: selfLink }, additionalField: additionalFieldValue }));
     const retrievedResource: TestResource = await testResourceClient.readWithUuid("00000000-0000-0000-0000-000000000000");
     expect(retrievedResource.additionalField).toBe(additionalFieldValue);
-    expect(retrievedResource._links?.self?.href).toBe(selfLink);
+    expect(retrievedResource.self?.href).toBe(selfLink);
 });
 
 test('read throws an error when a bad request is made (HTTP 404 status)', async () => {
@@ -435,33 +514,33 @@ test('read throws an error when a bad request is made (HTTP 404 status)', async 
 test('read correctly retrieves the resource and correctly deserializes the JSON string data type property', async () => {
     const selfLink = "http://localhost/testresources/00000000-0000-0000-0000-000000000000";
     const additionalFieldValue = "test value";
-    fetchMock.mockResponse(JSON.stringify({ _links: { self: { href: selfLink } }, additionalField: additionalFieldValue, someNumber: 42, someDate: '2021-01-01T09:00:00Z' }));
+    fetchMock.mockResponse(JSON.stringify({ self: { href: selfLink }, additionalField: additionalFieldValue, someNumber: 42, someDate: '2021-01-01T09:00:00Z' }));
     const retrievedResource: TestResource = await testResourceClient.read("http://localhost/testresources/00000000-0000-0000-0000-000000000000");
 	expect(typeof retrievedResource.additionalField).toBe('string');
 	expect(retrievedResource.additionalField).toBe(additionalFieldValue);
-	expect(retrievedResource._links?.self?.href).toBe(selfLink);
+	expect(retrievedResource.self?.href).toBe(selfLink);
 });
 
 test('read correctly retrieves the resource and correctly deserializes the JSON string number type property', async () => {
     const selfLink = "http://localhost/testresources/00000000-0000-0000-0000-000000000000";
     const additionalFieldValue = "test value";
-    fetchMock.mockResponse(JSON.stringify({ _links: { self: { href: selfLink } }, additionalField: additionalFieldValue, someNumber: 42, someDate: '2021-01-01T09:00:00Z' }));
+    fetchMock.mockResponse(JSON.stringify({ self: { href: selfLink }, additionalField: additionalFieldValue, someNumber: 42, someDate: '2021-01-01T09:00:00Z' }));
     const retrievedResource: TestResource = await testResourceClient.read("http://localhost/testresources/00000000-0000-0000-0000-000000000000");
 	expect(typeof retrievedResource.someNumber).toBe('number');
 	expect(retrievedResource.someNumber).toBe(42);
-	expect(retrievedResource._links?.self?.href).toBe(selfLink);
+	expect(retrievedResource.self?.href).toBe(selfLink);
 });
 
 test('read correctly retrieves the resource but does not deserialize the non-JSON data type property Date', async () => {
     const selfLink = "http://localhost/testresources/00000000-0000-0000-0000-000000000000";
     const additionalFieldValue = "test value";
-    fetchMock.mockResponse(JSON.stringify({ _links: { self: { href: selfLink } }, additionalField: additionalFieldValue, someNumber: 42, someDate: '2021-01-01T09:00:00Z' }));
+    fetchMock.mockResponse(JSON.stringify({ self: { href: selfLink }, additionalField: additionalFieldValue, someNumber: 42, someDate: '2021-01-01T09:00:00Z' }));
     const retrievedResource: TestResource = await testResourceClient.read("http://localhost/testresources/00000000-0000-0000-0000-000000000000");
 	expect(retrievedResource.additionalField).toBe(additionalFieldValue);
 	expect(typeof retrievedResource.someDate).not.toBe('Date');
 	expect(typeof retrievedResource.someDate).toBe('string');
 	expect(retrievedResource.someDate).toBe('2021-01-01T09:00:00Z');
-	expect(retrievedResource._links?.self?.href).toBe(selfLink);
+	expect(retrievedResource.self?.href).toBe(selfLink);
 });
 
 test('update correctly updates the resource', async () => {
@@ -469,7 +548,7 @@ test('update correctly updates the resource', async () => {
 	const otherLink = "http://localhost/to/some/other/place";
     const additionalFieldValue = "test value";
     fetchMock.mockResponse("", { status: 201, headers: { Location: selfLink } });
-    const newResource: TestResource = { _links: { self: { href: selfLink }, someLink: {href: otherLink } }, additionalField: additionalFieldValue }
+    const newResource: TestResource = { self: { href: selfLink}, someLink: {href: otherLink }, additionalField: additionalFieldValue }
     await expect(testResourceClient.update(newResource)).resolves.not.toThrow();
     const expectedHeaders = new Headers({ "Content-Type": testResourceMediaType });
     expect(fetchMock.mock.calls[0][0]).toBe(selfLink);
@@ -483,7 +562,7 @@ test('update throws an error when a bad request is made (HTTP 415 status)', asyn
 	fetchMock.mockResponse(errorMessage, { status: errorStatus });
 	expect.assertions(4);
 	try {
-		await testResourceClient.update({ _links: { self: { href: resourceUri } } })
+		await testResourceClient.update({ self: { href: resourceUri } });
 	}
 	catch(error){
 		expect(error).toBeInstanceOf(NotSupportedError);
@@ -499,7 +578,7 @@ test('update throws an error when the resource can not be found (HTTP 404 status
 	fetchMock.mockResponse("", { status: errorStatus });
 	expect.assertions(4);
 	try {
-		await testResourceClient.update({ _links: { self: { href: resourceUri } } })
+		await testResourceClient.update({ self: { href: resourceUri } })
 	}
 	catch(error){
 		expect(error).toBeInstanceOf(NotFoundError);
