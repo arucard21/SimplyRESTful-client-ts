@@ -1,9 +1,7 @@
 import { SimplyRESTfulClient } from '../src/simplyrestful-client';
 import { TestResource } from './TestResource';
 import fetchMock from 'jest-fetch-mock';
-import { JsonConvert } from 'json2typescript';
 import { InternalServerError, BadRequestError, NotFoundError, BadGatewayError, ForbiddenError, NotAcceptableError, NotSupportedError } from '../src/Errors';
-import { assertForInStatement } from '@babel/types';
 
 let testResourceClient: SimplyRESTfulClient<TestResource>;
 const baseUri = "http://localhost/";
@@ -294,9 +292,9 @@ test('list correctly sets the paging query parameters', async () => {
     expect(actualUri).toContain(resourceListUri);
     const actualSearchParams: URLSearchParams = new URL(actualUri).searchParams;
     expect(actualSearchParams.has("pageStart")).toBeTruthy();
-    expect(parseInt(actualSearchParams.get("pageStart"))).toEqual(pageStart);
+    expect(parseInt(actualSearchParams.get("pageStart")!)).toEqual(pageStart);
     expect(actualSearchParams.has("pageSize")).toBeTruthy();
-    expect(parseInt(actualSearchParams.get("pageSize"))).toEqual(pageSize);
+    expect(parseInt(actualSearchParams.get("pageSize")!)).toEqual(pageSize);
     expect(actualSearchParams.has("fields")).toBeTruthy();
     expect(actualSearchParams.get("fields")).toBe(fields.join(","));
     expect(actualSearchParams.has("query")).toBeTruthy();
@@ -323,16 +321,16 @@ test('list correctly sets the paging query parameters when a relative base API U
     const additional = new URLSearchParams({ "param1": "value1", "param2": "value2" });
 
     fetchMock.mockResponse(JSON.stringify({}));
-    const retrievedListOfResources: TestResource[] = await clientWithRelativeUri.list({pageStart: pageStart, pageSize: pageSize, fields: fields, query: query, sort: sort, additionalQueryParameters: additional});
+    await clientWithRelativeUri.list({pageStart: pageStart, pageSize: pageSize, fields: fields, query: query, sort: sort, additionalQueryParameters: additional});
 
 	const actualUri : string = fetchMock.mock.calls[0][0] as string;
 	const actualUrl = new URL(actualUri, 'http://placeholderforrelativeurl')
 	expect(actualUrl.pathname).toBe(resourceListUri);
     const actualSearchParams: URLSearchParams = actualUrl.searchParams;
     expect(actualSearchParams.has("pageStart")).toBeTruthy();
-    expect(parseInt(actualSearchParams.get("pageStart"))).toEqual(pageStart);
+    expect(parseInt(actualSearchParams.get("pageStart")!)).toEqual(pageStart);
     expect(actualSearchParams.has("pageSize")).toBeTruthy();
-    expect(parseInt(actualSearchParams.get("pageSize"))).toEqual(pageSize);
+    expect(parseInt(actualSearchParams.get("pageSize")!)).toEqual(pageSize);
     expect(actualSearchParams.has("fields")).toBeTruthy();
     expect(actualSearchParams.get("fields")).toBe(fields.join(","));
     expect(actualSearchParams.has("query")).toBeTruthy();
@@ -371,7 +369,7 @@ test('list throws an error when a bad request is made (HTTP 400 status)', async 
 test('create correctly creates the resource', async () => {
     const selfLink = "http://localhost/testresources/00000000-0000-0000-0000-000000000000";
     const additionalFieldValue = "test value";
-    fetchMock.mockResponse(null, { status: 201, headers: { Location: selfLink } });
+    fetchMock.mockResponse("", { status: 201, headers: { Location: selfLink } });
     const newResource: TestResource = { additionalField: additionalFieldValue };
     const newResourceUri: string = await testResourceClient.create(newResource);
     expect(newResourceUri).toBe(selfLink);
@@ -384,7 +382,7 @@ test('create throws an error when a bad request is made (HTTP 403 status)', asyn
 	fetchMock.mockResponse(errorMessage, { status: errorStatus });
 	expect.assertions(3);
 	try {
-		await testResourceClient.create(null)
+		await testResourceClient.create({});
 	}
 	catch(error) {
 		expect(error).toBeInstanceOf(ForbiddenError);
@@ -394,8 +392,8 @@ test('create throws an error when a bad request is made (HTTP 403 status)', asyn
 });
 
 test('create throws an error when the location is not returned', async () => {
-    fetchMock.mockResponse(null, { status: 201 });
-    await expect(testResourceClient.create(null)).rejects.toThrow(
+    fetchMock.mockResponse("", { status: 201 });
+    await expect(testResourceClient.create({})).rejects.toThrow(
 		"Resource seems to have been created but no location was returned. Please report this to the maintainers of the API");
 });
 
@@ -405,7 +403,7 @@ test('read correctly retrieves the resource when provided with a URL', async () 
     fetchMock.mockResponse(JSON.stringify({ _links: { self: { href: selfLink } }, additionalField: additionalFieldValue}));
     const retrievedResource: TestResource = await testResourceClient.read("http://localhost/testresources/00000000-0000-0000-0000-000000000000");
 	expect(retrievedResource.additionalField).toBe(additionalFieldValue);
-    expect(retrievedResource._links.self.href).toBe(selfLink);
+    expect(retrievedResource._links?.self?.href).toBe(selfLink);
 });
 
 test('readWithUuid correctly retrieves the resource when provided with a UUID', async () => {
@@ -414,7 +412,7 @@ test('readWithUuid correctly retrieves the resource when provided with a UUID', 
     fetchMock.mockResponse(JSON.stringify({ _links: { self: { href: selfLink } }, additionalField: additionalFieldValue }));
     const retrievedResource: TestResource = await testResourceClient.readWithUuid("00000000-0000-0000-0000-000000000000");
     expect(retrievedResource.additionalField).toBe(additionalFieldValue);
-    expect(retrievedResource._links.self.href).toBe(selfLink);
+    expect(retrievedResource._links?.self?.href).toBe(selfLink);
 });
 
 test('read throws an error when a bad request is made (HTTP 404 status)', async () => {
@@ -441,7 +439,7 @@ test('read correctly retrieves the resource and correctly deserializes the JSON 
     const retrievedResource: TestResource = await testResourceClient.read("http://localhost/testresources/00000000-0000-0000-0000-000000000000");
 	expect(typeof retrievedResource.additionalField).toBe('string');
 	expect(retrievedResource.additionalField).toBe(additionalFieldValue);
-	expect(retrievedResource._links.self.href).toBe(selfLink);
+	expect(retrievedResource._links?.self?.href).toBe(selfLink);
 });
 
 test('read correctly retrieves the resource and correctly deserializes the JSON string number type property', async () => {
@@ -451,7 +449,7 @@ test('read correctly retrieves the resource and correctly deserializes the JSON 
     const retrievedResource: TestResource = await testResourceClient.read("http://localhost/testresources/00000000-0000-0000-0000-000000000000");
 	expect(typeof retrievedResource.someNumber).toBe('number');
 	expect(retrievedResource.someNumber).toBe(42);
-	expect(retrievedResource._links.self.href).toBe(selfLink);
+	expect(retrievedResource._links?.self?.href).toBe(selfLink);
 });
 
 test('read correctly retrieves the resource but does not deserialize the non-JSON data type property Date', async () => {
@@ -463,14 +461,14 @@ test('read correctly retrieves the resource but does not deserialize the non-JSO
 	expect(typeof retrievedResource.someDate).not.toBe('Date');
 	expect(typeof retrievedResource.someDate).toBe('string');
 	expect(retrievedResource.someDate).toBe('2021-01-01T09:00:00Z');
-	expect(retrievedResource._links.self.href).toBe(selfLink);
+	expect(retrievedResource._links?.self?.href).toBe(selfLink);
 });
 
 test('update correctly updates the resource', async () => {
 	const selfLink = "http://localhost/testresources/00000000-0000-0000-0000-000000000000";
 	const otherLink = "http://localhost/to/some/other/place";
     const additionalFieldValue = "test value";
-    fetchMock.mockResponse(null, { status: 201, headers: { Location: selfLink } });
+    fetchMock.mockResponse("", { status: 201, headers: { Location: selfLink } });
     const newResource: TestResource = { _links: { self: { href: selfLink }, someLink: {href: otherLink } }, additionalField: additionalFieldValue }
     await expect(testResourceClient.update(newResource)).resolves.not.toThrow();
     const expectedHeaders = new Headers({ "Content-Type": testResourceMediaType });
@@ -498,7 +496,7 @@ test('update throws an error when a bad request is made (HTTP 415 status)', asyn
 test('update throws an error when the resource can not be found (HTTP 404 status)', async () => {
 	const resourceUri = "http://localhost/testresources/00000000-0000-0000-0000-000000000000";
 	const errorStatus = 404;
-	fetchMock.mockResponse(null, { status: errorStatus });
+	fetchMock.mockResponse("", { status: errorStatus });
 	expect.assertions(4);
 	try {
 		await testResourceClient.update({ _links: { self: { href: resourceUri } } })
@@ -513,14 +511,14 @@ test('update throws an error when the resource can not be found (HTTP 404 status
 
 test('delete correctly deletes the resource when provided with a URL', async () => {
     const selfLink = "http://localhost/testresources/00000000-0000-0000-0000-000000000000";
-    fetchMock.mockResponse(null, { status: 204, headers: { Location: selfLink } });
+    fetchMock.mockResponse("", { status: 204, headers: { Location: selfLink } });
     await expect(testResourceClient.delete(selfLink)).resolves.not.toThrow();
     expect(fetchMock.mock.calls[0][0]).toBe(selfLink);
 });
 
 test('deleteWithUuid correctly deletes the resource when provided with a UUID', async () => {
     const selfLink = "http://localhost/testresources/00000000-0000-0000-0000-000000000000";
-    fetchMock.mockResponse(null, { status: 204, headers: { Location: selfLink } });
+    fetchMock.mockResponse("", { status: 204, headers: { Location: selfLink } });
     await expect(testResourceClient.deleteWithUuid("00000000-0000-0000-0000-000000000000")).resolves.not.toThrow();
     expect(fetchMock.mock.calls[0][0]).toBe(selfLink);
 });
@@ -545,7 +543,7 @@ test('delete throws an error when a bad request is made (HTTP 406 status)', asyn
 test('delete throws an error when the resource can not be found (HTTP 404 status)', async () => {
 	const errorStatus = 404;
     const resourceUri = "http://localhost/testresources/00000000-0000-0000-0000-000000000000";
-	fetchMock.mockResponse(null, { status: errorStatus });
+	fetchMock.mockResponse("", { status: errorStatus });
 	expect.assertions(4);
 	try {
 		await testResourceClient.delete(resourceUri)
