@@ -119,7 +119,7 @@ export class ClientError extends WebApplicationError {
 
 export class BadRequestError extends ClientError {
 	public constructor(
-		message: string = "Bad Request",
+		message = "Bad Request",
 		cause?: Error,
 		response?: Response
 	) {
@@ -129,7 +129,7 @@ export class BadRequestError extends ClientError {
 
 export class NotAuthorizedError extends ClientError {
 	public constructor(
-		message: string = "Unauthorized",
+		message = "Unauthorized",
 		cause?: Error,
 		response?: Response
 	) {
@@ -139,7 +139,7 @@ export class NotAuthorizedError extends ClientError {
 
 export class ForbiddenError extends ClientError {
 	public constructor(
-		message: string = "Forbidden",
+		message = "Forbidden",
 		cause?: Error,
 		response?: Response
 	) {
@@ -149,7 +149,7 @@ export class ForbiddenError extends ClientError {
 
 export class NotFoundError extends ClientError {
 	public constructor(
-		message: string = "Not Found",
+		message = "Not Found",
 		cause?: Error,
 		response?: Response
 	) {
@@ -159,7 +159,7 @@ export class NotFoundError extends ClientError {
 
 export class NotAllowedError extends ClientError {
 	public constructor(
-		message: string = "Method Not Allowed",
+		message = "Method Not Allowed",
 		cause?: Error,
 		response?: Response
 	) {
@@ -169,7 +169,7 @@ export class NotAllowedError extends ClientError {
 
 export class NotAcceptableError extends ClientError {
 	public constructor(
-		message: string = "Not Acceptable",
+		message = "Not Acceptable",
 		cause?: Error,
 		response?: Response
 	) {
@@ -179,7 +179,7 @@ export class NotAcceptableError extends ClientError {
 
 export class NotSupportedError extends ClientError {
 	public constructor(
-		message: string = "Unsupported Media Type",
+		message = "Unsupported Media Type",
 		cause?: Error,
 		response?: Response
 	) {
@@ -203,7 +203,7 @@ export class ServerError extends WebApplicationError {
 
 export class InternalServerError extends ServerError {
 	public constructor(
-		message: string = "Internal Server Error",
+		message = "Internal Server Error",
 		cause?: Error,
 		response?: Response
 	) {
@@ -213,7 +213,7 @@ export class InternalServerError extends ServerError {
 
 export class NotImplementedError extends ServerError {
 	public constructor(
-		message: string = "Not Implemented",
+		message = "Not Implemented",
 		cause?: Error,
 		response?: Response
 	) {
@@ -223,7 +223,7 @@ export class NotImplementedError extends ServerError {
 
 export class BadGatewayError extends ServerError {
 	public constructor(
-		message: string = "Bad Gateway",
+		message = "Bad Gateway",
 		cause?: Error,
 		response?: Response
 	) {
@@ -233,7 +233,7 @@ export class BadGatewayError extends ServerError {
 
 export class ServiceUnavailableError extends ServerError {
 	public constructor(
-		message: string = "Service Unavailable",
+		message = "Service Unavailable",
 		cause?: Error,
 		response?: Response
 	) {
@@ -243,7 +243,7 @@ export class ServiceUnavailableError extends ServerError {
 
 export class GatewayTimeoutError extends ServerError {
 	public constructor(
-		message: string = "Gateway Timeout",
+		message = "Gateway Timeout",
 		cause?: Error,
 		response?: Response
 	) {

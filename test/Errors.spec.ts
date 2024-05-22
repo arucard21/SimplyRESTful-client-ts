@@ -27,7 +27,7 @@ test('WebApplicationError can be created correctly with all parameters provided'
 	expect(error.status).toBe(status);
 	expect(error.message).toBe(message);
 	expect(error.cause).toBe(cause);
-	expect(error.cause.message).toBe(causeMessage);
+	expect(error.cause?.message).toBe(causeMessage);
 	expect(error.response).toBe(response);
 });
 
@@ -54,7 +54,7 @@ test('RedirectionError can be created correctly with all parameters provided', (
 	expect(error.location).toBe(location);
 	expect(error.message).toBe(message);
 	expect(error.cause).toBe(cause);
-	expect(error.cause.message).toBe(causeMessage);
+	expect(error.cause?.message).toBe(causeMessage);
 	expect(error.response).toBe(response);
 });
 
@@ -79,7 +79,7 @@ test('ClientError can be created correctly with all parameters provided', () => 
 	expect(error.status).toBe(status);
 	expect(error.message).toBe(message);
 	expect(error.cause).toBe(cause);
-	expect(error.cause.message).toBe(causeMessage);
+	expect(error.cause?.message).toBe(causeMessage);
 	expect(error.response).toBe(response);
 });
 
@@ -104,7 +104,7 @@ test('ServerError can be created correctly with all parameters provided', () => 
 	expect(error.status).toBe(status);
 	expect(error.message).toBe(message);
 	expect(error.cause).toBe(cause);
-	expect(error.cause.message).toBe(causeMessage);
+	expect(error.cause?.message).toBe(causeMessage);
 	expect(error.response).toBe(response);
 });
 

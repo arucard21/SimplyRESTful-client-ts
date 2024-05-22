@@ -8,4 +8,4 @@ export interface APICollection<T extends APIResource> extends APIResource {
 	prev: Link,
 	next: Link;
     item: T[];
-};
+}
