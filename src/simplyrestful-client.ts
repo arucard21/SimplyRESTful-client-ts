@@ -1,8 +1,7 @@
 import { OpenAPIV3 } from 'openapi-types';
-import { APIResource } from './APIResource';
-import { APICollection } from './APICollection';
-import { SortOrder } from './SortOrder';
-import { BadRequestError, NotFoundError, fromResponse } from './Errors';
+import { APIResource } from './types/APIResource';
+import { APICollection } from './types/APICollection';
+import { SortOrder } from './types/SortOrder';
 
 export class SimplyRESTfulClient<T extends APIResource> {
 	readonly dummyHostname = "placeholderforrelativeurl";
