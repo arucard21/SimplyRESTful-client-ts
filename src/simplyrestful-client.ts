@@ -2,13 +2,13 @@ import { OpenAPIV3 } from 'openapi-types';
 import { APIResource } from './types/APIResource';
 import { APICollection } from './types/APICollection';
 import { SortOrder } from './types/SortOrder';
-import { BadRequestError, NotFoundError, fromResponse } from './Errors';
+import { BadRequestError, fromResponse } from './Errors';
 
 export const HTTP_HEADER_NAME_LOCATION = 'Location';
 
 export class SimplyRESTfulClient<T extends APIResource> {
-	readonly dummyHostname = "placeholderforrelativeurl";
-	readonly dummyHost = "http://" + this.dummyHostname;
+	readonly dummyHostname = 'placeholderforrelativeurl';
+	readonly dummyHost = 'http://' + this.dummyHostname;
 
     readonly baseApiUri: string;
     readonly resourceMediaType: string;
@@ -36,50 +36,45 @@ export class SimplyRESTfulClient<T extends APIResource> {
         if (this.resourceUriTemplate) {
             return;
         }
-        return this.retrieveServiceDocument(httpHeaders)
-            .then(openApiSpecificationUrl => this.retrieveOpenApiSpecification(openApiSpecificationUrl, httpHeaders))
-            .then(openApiSpecification => this.configureResourceUriTemplate(openApiSpecification));
+        const openApiSpecificationUrl = await this.retrieveServiceDocument(httpHeaders);
+		const openApiSpecification = await this.retrieveOpenApiSpecification(openApiSpecificationUrl, httpHeaders);
+        this.configureResourceUriTemplate(openApiSpecification);
     }
 
     private async retrieveServiceDocument(this: this, httpHeaders?: Headers): Promise<string> {
-        return fetch(this.baseApiUri, { headers: httpHeaders }).then(async response => {
-            if (!response.ok) {
-				return response.text().then(body => {
-					throw fromResponse(
-						response,
-						new Error(`The client could not access the API at ${this.baseApiUri}.\nThe API returned status ${response.status} with message:\n${body}`));
-				});
-            }
-            return response.json().then(serviceDocument => {
-                return serviceDocument["describedBy"]["href"];
-            })
-        });
+        const response = await fetch(this.baseApiUri, { headers: httpHeaders });
+		if (!response.ok) {
+			const errorBody = await response.text();
+			throw fromResponse(
+				response,
+				new Error(`The client could not access the API at ${this.baseApiUri}.\nThe API returned status ${response.status} with message:\n${errorBody}`));
+		}
+		const serviceDocument = await response.json();
+		return serviceDocument['describedBy']['href'];
     }
 
     private async retrieveOpenApiSpecification(openApiSpecificationUrl: string, httpHeaders?: Headers): Promise<OpenAPIV3.Document> {
-        return fetch(openApiSpecificationUrl, { headers: httpHeaders }).then(async response => {
-            if (!response.ok) {
-				return response.text().then(body => {
-					throw fromResponse(
-						response,
-						new Error(`The client could not retrieve the OpenAPI Specification document at ${openApiSpecificationUrl}.\nThe API returned status ${response.status} with message:\n${body}`));
-				});
-            }
-            return response.json().then((openApiSpecification: OpenAPIV3.Document) => openApiSpecification);
-        });
+        const response = await fetch(openApiSpecificationUrl, { headers: httpHeaders });
+		if (!response.ok) {
+			const errorBody = await response.text();
+			throw fromResponse(
+				response,
+				new Error(`The client could not retrieve the OpenAPI Specification document at ${openApiSpecificationUrl}.\nThe API returned status ${response.status} with message:\n${errorBody}`));
+		}
+		return await response.json();
     }
 
-    private async configureResourceUriTemplate(this: this, openApiSpecification: OpenAPIV3.Document): Promise<void> {
+    private configureResourceUriTemplate(this: this, openApiSpecification: OpenAPIV3.Document): void {
         for (const [discoveredPath, pathItem] of Object.entries(openApiSpecification.paths)) {
 			if(!pathItem){
 				continue;
 			}
 			const responses = (pathItem.get?.responses as OpenAPIV3.ResponsesObject);
 			for(const responseIndex in responses){
-				if(responseIndex == "default" || (parseInt(responseIndex) >= 200 && parseInt(responseIndex) < 300)){
+				if(responseIndex == 'default' || (parseInt(responseIndex) >= 200 && parseInt(responseIndex) < 300)){
 					const response = responses[responseIndex] as OpenAPIV3.ResponseObject
 					for (const contentType in response.content) {
-						const contentTypeNoSpaces = contentType.replace(" ", "");
+						const contentTypeNoSpaces = contentType.replace(' ', '');
 						if (contentTypeNoSpaces === this.resourceMediaType) {
 							const resourceUri : URL = this.createUrlFromRelativeOrAbsoluteUrlString(this.baseApiUri);
 							resourceUri.pathname = this.joinPath(resourceUri.pathname, discoveredPath);
@@ -93,196 +88,171 @@ export class SimplyRESTfulClient<T extends APIResource> {
 	}
 
 	async list({pageStart, pageSize, fields, query, sort, httpHeaders, additionalQueryParameters} : {pageStart?: number, pageSize?: number, fields?: string[], query?: string, sort?: SortOrder[], httpHeaders?: Headers, additionalQueryParameters?: URLSearchParams} = {}): Promise<T[]> {
-        return this.discoverApi(httpHeaders).then(() => {
-            const resourceListUri = this.createUrlFromRelativeOrAbsoluteUrlString(this.resolveResourceUriTemplate());
+        await this.discoverApi(httpHeaders)
 
-            const searchParams = new URLSearchParams();
-            if (pageStart) {
-                searchParams.append("pageStart", pageStart.toString());
-            }
-            if (pageSize) {
-                searchParams.append("pageSize", pageSize.toString());
-            }
-            if (fields) {
-                searchParams.append("fields", fields.join(","));
-            }
-            if (query) {
-                searchParams.append("query", query);
-            }
-            if (sort) {
-                const sortParameters: string[] = [];
-                sort.forEach(field => {
-                    sortParameters.push(`${field.fieldName}:${field.ascending ? "asc" : "desc"}`);
-                });
-                searchParams.append("sort", sortParameters.join(","));
-            }
-            if (additionalQueryParameters) {
-                additionalQueryParameters.forEach((paramValue, paramName) => {
-                    searchParams.append(paramName, paramValue);
-                });
-            }
-            resourceListUri.search = searchParams.toString();
+		const resourceListUri = this.createUrlFromRelativeOrAbsoluteUrlString(this.resolveResourceUriTemplate());
 
-            if (!httpHeaders) {
-                httpHeaders = new Headers();
-            }
-            httpHeaders.append("Accept", "application/x.simplyrestful-collection-v1+json");
+		const searchParams = new URLSearchParams();
+		if (pageStart) {
+			searchParams.append('pageStart', pageStart.toString());
+		}
+		if (pageSize) {
+			searchParams.append('pageSize', pageSize.toString());
+		}
+		if (fields) {
+			searchParams.append('fields', fields.join(','));
+		}
+		if (query) {
+			searchParams.append('query', query);
+		}
+		if (sort) {
+			const sortParameters: string[] = [];
+			sort.forEach(field => {
+				sortParameters.push(`${field.fieldName}:${field.ascending ? 'asc' : 'desc'}`);
+			});
+			searchParams.append('sort', sortParameters.join(','));
+		}
+		if (additionalQueryParameters) {
+			additionalQueryParameters.forEach((paramValue, paramName) => {
+				searchParams.append(paramName, paramValue);
+			});
+		}
+		resourceListUri.search = searchParams.toString();
 
-            return fetch(this.getRelativeOrAbsoluteUrl(resourceListUri), { headers: httpHeaders }).then(response => {
-                if (!response.ok) {
-					return response.text().then(body => {
-						throw fromResponse(
-							response,
-							new Error(`Failed to list the resource at ${resourceListUri}.\nThe API returned status ${response.status} with message:\n${body}`));
-					});
-                }
-                return response.json() as Promise<APICollection<T>>;
-            }).then((collection: APICollection<T>) => {
-                this.totalAmountOfLastRetrievedCollection = typeof collection.total === 'number' ? collection.total : -1;
-                if (!collection.item) {
-                    return [];
-                }
-                return collection.item;
-            })
-        });
+		if (!httpHeaders) {
+			httpHeaders = new Headers();
+		}
+		httpHeaders.append('Accept', 'application/x.simplyrestful-collection-v1+json');
+
+		const response = await fetch(this.getRelativeOrAbsoluteUrl(resourceListUri), { headers: httpHeaders });
+		if (!response.ok) {
+			const errorBody = await response.text();
+			throw fromResponse(
+				response,
+				new Error(`Failed to list the resource at ${resourceListUri}.\nThe API returned status ${response.status} with message:\n${errorBody}`));
+		}
+		const collection : APICollection<T> = await response.json();
+		this.totalAmountOfLastRetrievedCollection = typeof collection.total === 'number' ? collection.total : -1;
+		if (!collection.item) {
+			return [];
+		}
+		return collection.item;
     }
 
     async create(resource: T, httpHeaders?: Headers, queryParameters?: URLSearchParams): Promise<string> {
-        return this.discoverApi(httpHeaders).then(() => {
-            const resourceListUri = this.createUrlFromRelativeOrAbsoluteUrlString(this.resolveResourceUriTemplate());
-            if (queryParameters) {
-                resourceListUri.search = queryParameters.toString();
-            }
+        await this.discoverApi(httpHeaders);
 
-            if (!httpHeaders) {
-                httpHeaders = new Headers();
-            }
-            httpHeaders.append("Content-Type", this.resourceMediaType);
+		const resourceListUri = this.createUrlFromRelativeOrAbsoluteUrlString(this.resolveResourceUriTemplate());
+		if (queryParameters) {
+			resourceListUri.search = queryParameters.toString();
+		}
+		if (!httpHeaders) {
+			httpHeaders = new Headers();
+		}
+		httpHeaders.append('Content-Type', this.resourceMediaType);
 
-            return fetch(this.getRelativeOrAbsoluteUrl(resourceListUri), { method: "POST", headers: httpHeaders, body: JSON.stringify(resource) }).then(response => {
-                if (response.status !== 201) {
-					return response.text().then(body => {
-						throw fromResponse(
-							response,
-							new Error(`Failed to create the new resource.\nThe API returned status ${response.status} with message:\n${body}`));
-					});
-                }
-                const locationOfCreatedResource = response.headers.get(HTTP_HEADER_NAME_LOCATION);
-                if (!locationOfCreatedResource) {
-                    throw new Error("Resource seems to have been created but no location was returned. Please report this to the maintainers of the API");
-                }
-                return locationOfCreatedResource;
-            });
-        });
+		const response = await fetch(this.getRelativeOrAbsoluteUrl(resourceListUri), { method: 'POST', headers: httpHeaders, body: JSON.stringify(resource) });
+		if (response.status !== 201) {
+			const errorBody = await response.text();
+			throw fromResponse(
+				response,
+				new Error(`Failed to create the new resource.\nThe API returned status ${response.status} with message:\n${errorBody}`));
+		}
+		const locationOfCreatedResource = response.headers.get(HTTP_HEADER_NAME_LOCATION);
+		if (!locationOfCreatedResource) {
+			throw new Error('Resource seems to have been created but no location was returned. Please report this to the maintainers of the API');
+		}
+		return locationOfCreatedResource;
     }
 
     async read(resourceIdentifier: string, httpHeaders?: Headers, queryParameters?: URLSearchParams): Promise<T> {
-        return this.discoverApi(httpHeaders).then(() => {
-			const resourceUri = this.createUrlFromRelativeOrAbsoluteUrlString(resourceIdentifier);
-            if (queryParameters) {
-                resourceUri.search = queryParameters.toString();
-            }
+        await this.discoverApi(httpHeaders);
+		const resourceUri = this.createUrlFromRelativeOrAbsoluteUrlString(resourceIdentifier);
+		if (queryParameters) {
+			resourceUri.search = queryParameters.toString();
+		}
+		if (!httpHeaders) {
+			httpHeaders = new Headers();
+		}
+		httpHeaders.append('Accept', this.resourceMediaType);
 
-            if (!httpHeaders) {
-                httpHeaders = new Headers();
-            }
-            httpHeaders.append("Accept", this.resourceMediaType);
-
-            return fetch(this.getRelativeOrAbsoluteUrl(resourceUri), { headers: httpHeaders }).then(response => {
-                if (!response.ok) {
-					return response.text().then(body => {
-						throw fromResponse(
-							response,
-							new Error(`Failed to read the resource at ${resourceIdentifier}.\nThe API returned status ${response.status} with message:\n${body}`));
-					});
-                }
-				return response.json() as Promise<T>;
-            });
-        });
+		const response = await fetch(this.getRelativeOrAbsoluteUrl(resourceUri), { headers: httpHeaders });
+		if (!response.ok) {
+			const errorBody = await response.text()
+			throw fromResponse(
+				response,
+				new Error(`Failed to read the resource at ${resourceIdentifier}.\nThe API returned status ${response.status} with message:\n${errorBody}`));
+		}
+		const resource : T = await response.json();
+		return resource;
     }
 
     async update(resource: T, httpHeaders?: Headers, queryParameters?: URLSearchParams): Promise<void> {
-        return this.discoverApi(httpHeaders).then(() => {
-            const selfLink = resource?.self?.href;
-            if (!selfLink) {
-                throw new BadRequestError(new Error("The update failed because the resource does not contain a valid self link."));
-            }
-            const resourceIdentifier: URL = this.createUrlFromRelativeOrAbsoluteUrlString(selfLink);
-            if (queryParameters) {
-                resourceIdentifier.search = queryParameters.toString();
-            }
+        await this.discoverApi(httpHeaders);
 
-            if (!httpHeaders) {
-                httpHeaders = new Headers();
-            }
-            httpHeaders.append("Content-Type", this.resourceMediaType);
+		const selfLink = resource?.self?.href;
+		if (!selfLink) {
+			throw new BadRequestError(new Error('The update failed because the resource does not contain a valid self link.'));
+		}
+		const resourceIdentifier: URL = this.createUrlFromRelativeOrAbsoluteUrlString(selfLink);
+		if (queryParameters) {
+			resourceIdentifier.search = queryParameters.toString();
+		}
+		if (!httpHeaders) {
+			httpHeaders = new Headers();
+		}
+		httpHeaders.append('Content-Type', this.resourceMediaType);
 
-			const uri : string = this.getRelativeOrAbsoluteUrl(resourceIdentifier);
-            return fetch(uri, { method: "PUT", headers: httpHeaders, body: JSON.stringify(resource) }).then(response => {
-                if (!response.ok) {
-
-                    if (response.status === 404) {
-                        throw new NotFoundError(new Error(`Resource at ${uri} could not be found`), response);
-					}
-					return response.text().then(body => {
-						throw fromResponse(
-							response,
-							new Error(`Failed to update the resource at ${uri}.\nThe API returned status ${response.status} with message:\n${body}`));
-					});
-                }
-            })
-        });
+		const uri : string = this.getRelativeOrAbsoluteUrl(resourceIdentifier);
+		const response = await fetch(uri, { method: 'PUT', headers: httpHeaders, body: JSON.stringify(resource) });
+		if (!response.ok) {
+			const errorBody = await response.text();
+			const errorCause = response.status === 404 ?
+				new Error(`Resource at ${uri} could not be found`) :
+				new Error(`Failed to update the resource at ${uri}.\nThe API returned status ${response.status} with message:\n${errorBody}`)
+			throw fromResponse(response, errorCause);
+		}
     }
 
     async delete(resourceIdentifier: string, httpHeaders?: Headers, queryParameters?: URLSearchParams) : Promise<boolean> {
-        return this.discoverApi(httpHeaders).then(() => {
-			const resourceUri = this.createUrlFromRelativeOrAbsoluteUrlString(resourceIdentifier);
-            if (queryParameters) {
-                resourceUri.search = queryParameters.toString();
-            }
+        await this.discoverApi(httpHeaders);
 
-            if (!httpHeaders) {
-                httpHeaders = new Headers();
-            }
-
-            return fetch(this.getRelativeOrAbsoluteUrl(resourceUri), { method: "DELETE", headers: httpHeaders }).then(response => {
-                if (response.status !== 204) {
-                    if (response.status === 404) {
-                        throw new NotFoundError(new Error(`Resource at ${resourceIdentifier} could not be found`));
-					}
-					return response.text().then(body => {
-						throw fromResponse(
-							response,
-							new Error(`Failed to delete the resource at ${resourceIdentifier}.\nThe API returned status ${response.status} with message:\n${body}`));
-					});
-				}
-				else {
-					return true;
-				}
-            })
-        });
+		const resourceUri = this.createUrlFromRelativeOrAbsoluteUrlString(resourceIdentifier);
+		if (queryParameters) {
+			resourceUri.search = queryParameters.toString();
+		}
+		if (!httpHeaders) {
+			httpHeaders = new Headers();
+		}
+		const response = await fetch(this.getRelativeOrAbsoluteUrl(resourceUri), { method: 'DELETE', headers: httpHeaders });
+		if (response.status === 204) {
+			return true;
+		}
+		const errorBody = await response.text();
+		const errorCause = response.status === 404 ?
+			new Error(`Resource at ${resourceIdentifier} could not be found`) :
+			new Error(`Failed to delete the resource at ${resourceIdentifier}.\nThe API returned status ${response.status} with message:\n${errorBody}`);
+		throw fromResponse(response, errorCause);
     }
 
     async readWithUuid(resourceUuid: string, httpHeaders?: Headers, queryParameters?: URLSearchParams): Promise<T> {
-        return this.discoverApi(httpHeaders).then(() => {
-            const resourceUri = this.resolveResourceUriTemplate(resourceUuid);
-            return this.read(resourceUri, httpHeaders, queryParameters);
-        });
+		await this.discoverApi(httpHeaders);
+		const resourceUri = this.resolveResourceUriTemplate(resourceUuid);
+		return await this.read(resourceUri, httpHeaders, queryParameters);
     }
 
     async deleteWithUuid(resourceUuid: string, httpHeaders?: Headers, queryParameters?: URLSearchParams): Promise<boolean> {
-        return this.discoverApi(httpHeaders).then(() => {
-            const resourceUri = this.resolveResourceUriTemplate(resourceUuid);
-            return this.delete(resourceUri, httpHeaders, queryParameters);
-        });
+		await this.discoverApi(httpHeaders);
+		const resourceUri = this.resolveResourceUriTemplate(resourceUuid);
+		return await this.delete(resourceUri, httpHeaders, queryParameters);
     }
 
     private resolveResourceUriTemplate(resourceUuid?: string): string {
         if (!this.resourceUriTemplate) {
-            throw new Error("The client needs to discover the resource URI template from the API before this method can be used. Use discoverApi() first.");
+            throw new Error('The client needs to discover the resource URI template from the API before this method can be used. Use discoverApi() first.');
         }
         if (!resourceUuid) {
-            return this.resourceUriTemplate.replace(/{id}/, "");
+            return this.resourceUriTemplate.replace(/{id}/, '');
         }
         return this.resourceUriTemplate.replace(/{id}/, resourceUuid);
 	}
