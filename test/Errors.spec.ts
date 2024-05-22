@@ -1,4 +1,4 @@
-import { WebApplicationError, RedirectionError, ClientError, ServerError, fromResponse, NotFoundError, BadGatewayError, fromStatus, BadRequestError, NotAuthorizedError, ForbiddenError, NotAllowedError, NotAcceptableError, NotSupportedError, InternalServerError, NotImplementedError, ServiceUnavailableError, GatewayTimeoutError } from "../src/Errors";
+import { WebApplicationError, RedirectionError, ClientError, ServerError, fromResponse, NotFoundError, BadGatewayError, BadRequestError, NotAuthorizedError, ForbiddenError, NotAllowedError, NotAcceptableError, NotSupportedError, InternalServerError, NotImplementedError, ServiceUnavailableError, GatewayTimeoutError } from "../src/Errors";
 import fetchMock from 'jest-fetch-mock';
 
 beforeAll(() => {
@@ -117,74 +117,50 @@ test('ServerError throws an error if the status is 600 or above', () => {
 });
 
 test('fromResponse correctly creates a NotFoundError for a 404 status code', () => {
-	const status = 404;
-	const message = "custom message";
-	const body = new Blob();
-	const init = { "status" : status , "statusText" : message };
-	const response = new Response(body, init);
+	const response = new Response(undefined, { status: 404 });
 
 	const error = fromResponse(response);
 	expect(error).toBeInstanceOf(NotFoundError);
-	expect(error.status).toBe(status);
-	expect(error.message).toBe(message);
+	expect(error.status).toBe(404);
+	expect(error.message).toBe('Not Found');
 	expect(error.cause).toBeUndefined();
 	expect(error.response).toBe(response);
 });
 
 test('fromResponse correctly creates a BadGatewayError for a 502 status code', () => {
-	const status = 502;
-	const message = "custom message";
-	const body = new Blob();
-	const init = { "status" : status , "statusText" : message };
-	const response = new Response(body, init);
+	const response = new Response(undefined, { status: 502 });
 
 	const error = fromResponse(response);
 	expect(error).toBeInstanceOf(BadGatewayError);
-	expect(error.status).toBe(status);
-	expect(error.message).toBe(message);
+	expect(error.status).toBe(502);
+	expect(error.message).toBe('Bad Gateway');
 	expect(error.cause).toBeUndefined();
 	expect(error.response).toBe(response);
 });
 
-test('fromStatus correctly creates a BadGatewayError for a 502 status code and ignores the status and message from the provided response', () => {
-	const status = 502;
-	const message = "custom message";
-	const body = new Blob();
-	const responseStatus = 404;
-	const responseMessage = "Not Found"
-	const init = { "status" : responseStatus , "statusText" : responseMessage };
-	const response = new Response(body, init);
-
-	const error = fromStatus(status, undefined, message, undefined, response);
-	expect(error).toBeInstanceOf(BadGatewayError);
-	expect(error.status).toBe(status);
-	expect(error.status).not.toBe(responseStatus);
-	expect(error.message).toBe(message);
-	expect(error.message).not.toBe(responseMessage);
-	expect(error.cause).toBeUndefined();
-	expect(error.response).toBe(response);
-});
-
-test('fromStatus correctly creates a RedirectionError for a 301 status code when the location is also provided', () => {
+test('fromResponse correctly creates a RedirectionError for a 301 status code when the location is also provided', () => {
 	const status = 301;
 	const location = "http://localhost/redirected-location";
+	const init : ResponseInit = { status, headers: { "Location": location }};
+	const response = new Response(undefined, init);
 
-	const error = fromStatus(status, location);
+	const error = fromResponse(response);
 	expect(error).toBeInstanceOf(RedirectionError);
 	expect(error.status).toBe(status);
 	expect(error.message).toBe("Moved Permanently");
 });
 
-test('fromStatus throws an error when the status code is in below 300 as this does not imply an error', () => {
-	expect(() => fromStatus(299)).toThrowError();
+test('fromResponse throws an error when the status code is below 300 as this does not imply an error', () => {
+	expect(() => fromResponse(new Response(undefined, { status: 299 }))).toThrowError();
 });
 
-test('fromStatus throws an error when the status code is in below 300 as this does not imply an error', () => {
-	expect(() => fromStatus(600)).toThrowError();
+test('fromResponse throws an error when the status code is 600 or above as this does not imply an error', () => {
+	expect(() => fromResponse(new Response(undefined, { status: 600 }))).toThrowError();
+	expect(() => fromResponse(new Response(undefined, { status: 601 }))).toThrowError();
 });
 
-test('fromStatus throws an error when the status code is in 3xx range but no location was provided', () => {
-	expect(() => fromStatus(301)).toThrowError();
+test('fromResponse throws an error when the status code is in 3xx range but no location was provided', () => {
+	expect(() => fromResponse(new Response(undefined, { status: 301 }))).toThrowError();
 });
 
 test('BadRequestError can be created correctly with the minimal parameters provided', () => {

@@ -2,6 +2,9 @@ import { OpenAPIV3 } from 'openapi-types';
 import { APIResource } from './types/APIResource';
 import { APICollection } from './types/APICollection';
 import { SortOrder } from './types/SortOrder';
+import { BadRequestError, NotFoundError, fromResponse } from './Errors';
+
+export const HTTP_HEADER_NAME_LOCATION = 'Location';
 
 export class SimplyRESTfulClient<T extends APIResource> {
 	readonly dummyHostname = "placeholderforrelativeurl";
@@ -164,7 +167,7 @@ export class SimplyRESTfulClient<T extends APIResource> {
 							new Error(`Failed to create the new resource.\nThe API returned status ${response.status} with message:\n${body}`));
 					});
                 }
-                const locationOfCreatedResource = response.headers.get("Location");
+                const locationOfCreatedResource = response.headers.get(HTTP_HEADER_NAME_LOCATION);
                 if (!locationOfCreatedResource) {
                     throw new Error("Resource seems to have been created but no location was returned. Please report this to the maintainers of the API");
                 }
@@ -202,7 +205,7 @@ export class SimplyRESTfulClient<T extends APIResource> {
         return this.discoverApi(httpHeaders).then(() => {
             const selfLink = resource?.self?.href;
             if (!selfLink) {
-                throw new BadRequestError(undefined, new Error("The update failed because the resource does not contain a valid self link."));
+                throw new BadRequestError(new Error("The update failed because the resource does not contain a valid self link."));
             }
             const resourceIdentifier: URL = this.createUrlFromRelativeOrAbsoluteUrlString(selfLink);
             if (queryParameters) {
@@ -219,7 +222,7 @@ export class SimplyRESTfulClient<T extends APIResource> {
                 if (!response.ok) {
 
                     if (response.status === 404) {
-                        throw new NotFoundError(undefined, new Error(`Resource at ${uri} could not be found`), response);
+                        throw new NotFoundError(new Error(`Resource at ${uri} could not be found`), response);
 					}
 					return response.text().then(body => {
 						throw fromResponse(
@@ -245,7 +248,7 @@ export class SimplyRESTfulClient<T extends APIResource> {
             return fetch(this.getRelativeOrAbsoluteUrl(resourceUri), { method: "DELETE", headers: httpHeaders }).then(response => {
                 if (response.status !== 204) {
                     if (response.status === 404) {
-                        throw new NotFoundError(undefined, new Error(`Resource at ${resourceIdentifier} could not be found`));
+                        throw new NotFoundError(new Error(`Resource at ${resourceIdentifier} could not be found`));
 					}
 					return response.text().then(body => {
 						throw fromResponse(
