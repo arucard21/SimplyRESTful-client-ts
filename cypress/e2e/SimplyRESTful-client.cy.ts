@@ -3,10 +3,17 @@ import { ExampleResource } from "./ExampleResource";
 
 describe('SimplyRESTful client', () => {
 	const client = new SimplyRESTfulClient<ExampleResource>('/', 'application/x.testresource-v1+json');
-
 	describe('list', () => {
 		it('should retrieve all resources', async () => {
 			const resources = await client.list();
+			expect(resources.length).to.eq(3);
+			expect(client.totalAmountOfLastRetrievedCollection).to.eq(3);
+		})
+	});
+
+	describe('stream', () => {
+		it('should retrieve all resources', async () => {
+			const resources = await client.stream();
 			expect(resources.length).to.eq(3);
 			expect(client.totalAmountOfLastRetrievedCollection).to.eq(3);
 		})

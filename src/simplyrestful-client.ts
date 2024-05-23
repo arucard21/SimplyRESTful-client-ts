@@ -90,6 +90,8 @@ export class SimplyRESTfulClient<T extends APIResource> {
 	async list({pageStart, pageSize, fields, query, sort, httpHeaders, additionalQueryParameters} : {pageStart?: number, pageSize?: number, fields?: string[], query?: string, sort?: SortOrder[], httpHeaders?: Headers, additionalQueryParameters?: URLSearchParams} = {}): Promise<T[]> {
         await this.discoverApi(httpHeaders)
 
+		this.totalAmountOfLastRetrievedCollection = -1;
+
 		const resourceListUri = this.createUrlFromRelativeOrAbsoluteUrlString(this.resolveResourceUriTemplate());
 
 		const searchParams = new URLSearchParams();
@@ -137,6 +139,68 @@ export class SimplyRESTfulClient<T extends APIResource> {
 			return [];
 		}
 		return collection.item;
+    }
+
+	async stream({timeoutInMs = 5000, fields, query = '', sort, httpHeaders, additionalQueryParameters} :
+		{ timeoutInMs? : number, fields?: string[], query?: string, sort?: SortOrder[], httpHeaders?: Headers, additionalQueryParameters?: URLSearchParams } = {}): Promise<T[]> {
+		await this.discoverApi(httpHeaders)
+		this.totalAmountOfLastRetrievedCollection = -1
+
+		const resourceListUri = this.createUrlFromRelativeOrAbsoluteUrlString(this.resolveResourceUriTemplate());
+
+		const searchParams = new URLSearchParams();
+		if (fields) {
+			searchParams.append('fields', fields.join(','));
+		}
+		if (query) {
+			searchParams.append('query', query);
+		}
+		if (sort) {
+			const sortParameters: string[] = [];
+			sort.forEach(field => {
+				sortParameters.push(`${field.fieldName}:${field.ascending ? 'asc' : 'desc'}`);
+			});
+			searchParams.append('sort', sortParameters.join(','));
+		}
+		if (additionalQueryParameters) {
+			additionalQueryParameters.forEach((paramValue, paramName) => {
+				searchParams.append(paramName, paramValue);
+			});
+		}
+		resourceListUri.search = searchParams.toString();
+
+		return new Promise((resolve, reject) => {
+			const resources : T[] = [];
+			const streamUri = this.getRelativeOrAbsoluteUrl(resourceListUri);
+			const source = new EventSource(streamUri);
+			let count = 0;
+			source.onmessage = (event) => {
+				if (event.data === 'end-of-collection'){
+					this.totalAmountOfLastRetrievedCollection = count;
+					source.close();
+					return;
+				}
+				const resource : T = JSON.parse(event.data);
+				count++;
+				resources.push(resource);
+			}
+			source.onerror = () => {
+				source.close();
+				reject('Could not retrieve all resources');
+			};
+			const intervalId = setInterval(() => {
+				if(source.readyState == EventSource.CLOSED){
+					clearInterval(intervalId);
+					clearTimeout(timeoutId);
+					this.totalAmountOfLastRetrievedCollection = count;
+					resolve(resources);
+				}
+			}, 100);
+			const timeoutId = setTimeout(() => {
+				clearInterval(intervalId);
+				reject('Timed out while retrieving resources');
+			}, timeoutInMs);
+		});
     }
 
     async create(resource: T, httpHeaders?: Headers, queryParameters?: URLSearchParams): Promise<string> {
