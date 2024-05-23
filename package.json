@@ -7,7 +7,10 @@
   "scripts": {
     "build": "tsc",
     "test": "jest",
-    "test:integration": "jest --config jest.config.integration.js"
+    "integrationTest": "jest --config jest.config.integration.js",
+	"e2eTest": "cypress run",
+	"jest": "jest",
+	"cypress": "cypress"
   },
   "files": [
     "/dist"
@@ -30,6 +33,7 @@
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "babel-jest": "^27.5.1",
+    "cypress": "^13.10.0",
     "eslint": "^8.57.0",
     "jest": "^27.5.1",
     "jest-fetch-mock": "^3.0.3",
