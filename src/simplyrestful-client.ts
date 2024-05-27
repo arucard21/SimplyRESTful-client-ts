@@ -42,6 +42,10 @@ export class SimplyRESTfulClient<T extends APIResource> {
     }
 
     private async retrieveServiceDocument(this: this, httpHeaders?: Headers): Promise<string> {
+		if (!httpHeaders) {
+			httpHeaders = new Headers();
+		}
+		httpHeaders.append('Accept', 'application/x.simplyrestful-servicedocument-v1+json');
         const response = await fetch(this.baseApiUri, { headers: httpHeaders });
 		if (!response.ok) {
 			const errorBody = await response.text();
