@@ -9,9 +9,9 @@ test('WebApplicationError can be created correctly with the minimal parameters p
 	const status = 400;
 	const error = new WebApplicationError(status);
 	expect(error.status).toBe(status);
-	expect(error.message).toBeUndefined;
-	expect(error.cause).toBeUndefined;
-	expect(error.response).toBeUndefined;
+	expect(error.message).toBe(""); // Not undefined because Error initializes this to an empty string if no message was provided.
+	expect(error.cause).toBeUndefined();
+	expect(error.response).toBeUndefined();
 });
 
 test('WebApplicationError can be created correctly with all parameters provided', () => {
@@ -32,11 +32,11 @@ test('WebApplicationError can be created correctly with all parameters provided'
 });
 
 test('WebApplicationError throws an error if the status is below 300', () => {
-	expect(() => new WebApplicationError(201)).toThrowError();
+	expect(() => new WebApplicationError(201)).toThrow();
 });
 
 test('WebApplicationError throws an error if the status is 600 or above', () => {
-	expect(() => new WebApplicationError(600)).toThrowError();
+	expect(() => new WebApplicationError(600)).toThrow();
 });
 
 test('RedirectionError can be created correctly with all parameters provided', () => {
@@ -59,11 +59,11 @@ test('RedirectionError can be created correctly with all parameters provided', (
 });
 
 test('RedirectionError throws an error if the status is below 300', () => {
-	expect(() => new RedirectionError(201, "http://localhost")).toThrowError();
+	expect(() => new RedirectionError(201, "http://localhost")).toThrow();
 });
 
 test('RedirectionError throws an error if the status is 400 or above', () => {
-	expect(() => new RedirectionError(400, "http://localhost")).toThrowError();
+	expect(() => new RedirectionError(400, "http://localhost")).toThrow();
 });
 
 test('ClientError can be created correctly with all parameters provided', () => {
@@ -84,11 +84,11 @@ test('ClientError can be created correctly with all parameters provided', () => 
 });
 
 test('ClientError throws an error if the status is below 400', () => {
-	expect(() => new ClientError(301)).toThrowError();
+	expect(() => new ClientError(301)).toThrow();
 });
 
 test('ClientError throws an error if the status is 500 or above', () => {
-	expect(() => new ClientError(500)).toThrowError();
+	expect(() => new ClientError(500)).toThrow();
 });
 
 test('ServerError can be created correctly with all parameters provided', () => {
@@ -109,11 +109,11 @@ test('ServerError can be created correctly with all parameters provided', () => 
 });
 
 test('ServerError throws an error if the status is below 500', () => {
-	expect(() => new ServerError(401)).toThrowError();
+	expect(() => new ServerError(401)).toThrow();
 });
 
 test('ServerError throws an error if the status is 600 or above', () => {
-	expect(() => new ServerError(600)).toThrowError();
+	expect(() => new ServerError(600)).toThrow();
 });
 
 test('fromResponse correctly creates a NotFoundError for a 404 status code', () => {
@@ -151,16 +151,16 @@ test('fromResponse correctly creates a RedirectionError for a 301 status code wh
 });
 
 test('fromResponse throws an error when the status code is below 300 as this does not imply an error', () => {
-	expect(() => fromResponse(new Response(undefined, { status: 299 }))).toThrowError();
+	expect(() => fromResponse(new Response(undefined, { status: 299 }))).toThrow();
 });
 
 test('fromResponse throws an error when the status code is 600 or above as this does not imply an error', () => {
-	expect(() => fromResponse(new Response(undefined, { status: 600 }))).toThrowError();
-	expect(() => fromResponse(new Response(undefined, { status: 601 }))).toThrowError();
+	expect(() => fromResponse(new Response(undefined, { status: 600 }))).toThrow();
+	expect(() => fromResponse(new Response(undefined, { status: 601 }))).toThrow();
 });
 
 test('fromResponse throws an error when the status code is in 3xx range but no location was provided', () => {
-	expect(() => fromResponse(new Response(undefined, { status: 301 }))).toThrowError();
+	expect(() => fromResponse(new Response(undefined, { status: 301 }))).toThrow();
 });
 
 test('BadRequestError can be created correctly with the minimal parameters provided', () => {

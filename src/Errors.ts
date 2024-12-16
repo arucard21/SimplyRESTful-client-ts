@@ -8,7 +8,6 @@
  * other status codes in the 3xx, 4xx and 5xx range, a generic WebApplicationError
  * is created with the provided status code and message.
  */
-import { CustomError } from 'ts-custom-error'
 import { HTTP_HEADER_NAME_LOCATION } from './simplyrestful-client';
 
 export function fromResponse(response: Response, cause?: Error) : WebApplicationError {
@@ -68,7 +67,7 @@ export function fromResponse(response: Response, cause?: Error) : WebApplication
 	}
 }
 
-export class WebApplicationError extends CustomError {
+export class WebApplicationError extends Error {
 	public constructor(
 		public status: number,
 		message?: string,

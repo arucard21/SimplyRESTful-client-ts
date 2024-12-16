@@ -90,7 +90,12 @@ describe('SimplyRESTful client', () => {
 				await client.read(toBeDeletedResourceUri);
 			}
 			catch(e) {
-				expect(e).to.be.instanceOf(NotFoundError);
+				/**
+				 * Need to expect that e is a NotFoundError but an instanceof check cannot be done due to Cypress running
+				 * in a separate context from where the NotFoundError is created. So we check the status code in the error.
+				 */
+				expect(e).to.exist;
+				expect(e.status).to.eq(404);
 			}
 		});
 	});

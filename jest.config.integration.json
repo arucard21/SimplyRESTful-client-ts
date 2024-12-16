@@ -1,0 +1,6 @@
+{
+  "collectCoverage": true,
+  "coverageDirectory": "coverage/integration-test",
+  "testEnvironment": "jsdom",
+  "testMatch": ["**/integration-test/**/?(*.)+(spec|test).[tj]s?(x)"]
+}

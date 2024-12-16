@@ -1,0 +1,6 @@
+{
+  "collectCoverage": true,
+  "coverageDirectory": "coverage/test",
+  "testEnvironment": "jsdom",
+  "testMatch": ["**/test/**/?(*.)+(spec|test).[tj]s?(x)"]
+}
